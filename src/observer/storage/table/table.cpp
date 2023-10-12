@@ -28,6 +28,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/index/index.h"
 #include "storage/index/bplus_tree_index.h"
 #include "storage/trx/trx.h"
+#include "storage/field/field_meta.h"
 
 Table::~Table()
 {
@@ -311,7 +312,7 @@ RC Table::make_record(int value_num, const Value *values, Record &record)
   const int normal_field_start_index = table_meta_.sys_field_num();
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
-    const Value &value = values[i];
+    const Value value = values[i];
     if (field->type() != value.attr_type()) {
       LOG_ERROR("Invalid value type. table name =%s, field name=%s, type=%d, but given=%d",
                 table_meta_.name(), field->name(), field->type(), value.attr_type());
@@ -467,10 +468,12 @@ RC Table::create_index(Trx *trx, const FieldMeta *field_meta, const char *index_
   return rc;
 }
 
-RC Table::update_record(const Record &record)
+RC Table::update_record(Record &record, Value *value, std::string attr_name)
 {
   RC rc = RC::SUCCESS;
-  rc = record_handler_->update_record(&record);
+  const FieldMeta *field_meta = table_meta_.field(attr_name.c_str());
+
+  rc = record_handler_->update_record(field_meta, record, value);
   return rc;
 }
 

@@ -185,6 +185,12 @@ RC MvccTrx::delete_record(Table * table, Record &record)
   return RC::SUCCESS;
 }
 
+RC MvccTrx::update_record(Table *table, Record &record, Value *value, std::string attr_name)
+{
+  RC rc = RC::SUCCESS;
+  return rc;
+}
+
 RC MvccTrx::visit_record(Table *table, Record &record, bool readonly)
 {
   Field begin_field;

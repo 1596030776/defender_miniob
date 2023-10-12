@@ -17,23 +17,25 @@ See the Mulan PSL v2 for more details. */
 #include <vector>
 #include "sql/operator/physical_operator.h"
 #include "sql/parser/parse.h"
+#include <string>
 
-class InsertStmt;
+class Trx;
+class UpdateStmt;
 
 /**
  * @brief 插入物理算子
  * @ingroup PhysicalOperator
  */
-class InsertPhysicalOperator : public PhysicalOperator
+class UpdatePhysicalOperator : public PhysicalOperator
 {
 public:
-  InsertPhysicalOperator(Table *table, std::vector<std::vector<Value>> &&values);
+  UpdatePhysicalOperator(Table *table, Value *value, std::string attr_name);
 
-  virtual ~InsertPhysicalOperator() = default;
+  virtual ~UpdatePhysicalOperator() = default;
 
   PhysicalOperatorType type() const override
   {
-    return PhysicalOperatorType::INSERT;
+    return PhysicalOperatorType::UPDATE;
   }
 
   RC open(Trx *trx) override;
@@ -44,5 +46,7 @@ public:
 
 private:
   Table *table_ = nullptr;
-  std::vector<std::vector<Value>> values_list_;
+  Trx *trx_ = nullptr;
+  Value *value_;
+  std::string attr_name_;
 };
