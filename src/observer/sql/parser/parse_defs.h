@@ -41,6 +41,17 @@ struct RelAttrSqlNode
 };
 
 /**
+ * @brief 描述一个聚合函数
+ * @ingroup SQLParser
+ * @details 聚合函数
+ */
+struct AggregationSqlNode
+{
+  RelAttrSqlNode attr;           ///< attr (may be NULL)        属性
+  std::string aggregation_name;  ///< aggregation_name          聚合属性名
+};
+
+/**
  * @brief 描述比较运算符
  * @ingroup SQLParser
  */
@@ -263,6 +274,7 @@ enum SqlCommandFlag
   SCF_ERROR = 0,
   SCF_CALC,
   SCF_SELECT,
+  SCF_AGGREGATION,
   SCF_INSERT,
   SCF_UPDATE,
   SCF_DELETE,
@@ -294,6 +306,7 @@ public:
   ErrorSqlNode              error;
   CalcSqlNode               calc;
   SelectSqlNode             selection;
+  AggregationSqlNode        aggregation;
   InsertSqlNode             insertion;
   DeleteSqlNode             deletion;
   UpdateSqlNode             update;

@@ -62,6 +62,10 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         INDEX
         CALC
         SELECT
+        MAX
+        MIN
+        COUNT
+        AVG
         DESC
         SHOW
         SYNC
@@ -105,6 +109,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   Value *                           value;
   enum CompOp                       comp;
   RelAttrSqlNode *                  rel_attr;
+  AggregationSqlNode *              aggregation;
   std::vector<AttrInfoSqlNode> *    attr_infos;
   AttrInfoSqlNode *                 attr_info;
   Expression *                      expression;
@@ -132,6 +137,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <number>              number
 %type <comp>                comp_op
 %type <rel_attr>            rel_attr
+%type <aggregation>         aggregation
 %type <attr_infos>          attr_def_list
 %type <attr_info>           attr_def
 %type <value_list>          value_list
@@ -530,6 +536,32 @@ select_attr:
       }
       $$->emplace_back(*$1);
       delete $1;
+    }
+    | aggregation {
+      
+    }
+    ;
+
+aggregation:
+    MAX LBRACE rel_attr RBRACE {
+      $$ = new AggregationSqlNode;
+      $$->attr = $3;
+      $$->aggregation_name = "max";
+    }
+    | MIN LBRACE rel_attr RBRACE {
+      $$ = new AggregationSqlNode;
+      $$->attr = $3;
+      $$->aggregation_name = "min";
+    }
+    | COUNT LBRACE rel_attr RBRACE {
+      $$ = new AggregationSqlNode;
+      $$->attr = $3;
+      $$->aggregation_name = "count";
+    }
+    | AVG LBRACE rel_attr RBRACE {
+      $$ = new AggregationSqlNode;
+      $$->attr = $3;
+      $$->aggregation_name = "avg";
     }
     ;
 
