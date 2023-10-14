@@ -26,7 +26,7 @@ int yyerror(YYLTYPE *llocp, const char *sql_string, ParsedSqlResult *sql_result,
   error_sql_node->error.error_msg = msg;
   error_sql_node->error.line = llocp->first_line;
   error_sql_node->error.column = llocp->first_column;
-  sql_result->add_sql_node(s   td::move(error_sql_node));
+  sql_result->add_sql_node(std::move(error_sql_node));
   return 0;
 }
 
@@ -140,6 +140,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <rel_attr>            rel_attr
 %type <aggregation>         aggregation
 %type <aggregation_list>    aggregation_list
+%type <aggregation_list>    select_aggr
 %type <attr_infos>          attr_def_list
 %type <attr_info>           attr_def
 %type <value_list>          value_list
@@ -448,32 +449,29 @@ update_stmt:      /*  update 语句的语法解析树*/
     }
     ;
 select_stmt:        /*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list where
+    SELECT select_attr select_aggr FROM ID rel_list where
     {
       $$ = new ParsedSqlNode(SCF_SELECT);
       if ($2 != nullptr) {
-        using vector_value_type = decltype($2)::value_type;
-        if (std::is_same(vector_value_type, RelAttrSqlNode)) {
-          $$->selection.attributes.swap(*$2);
-        }
-        else if (std::is_same(vector_value_type, AggregationSqlNode)) {
-          $$->selection.aggregations.swap(*$2);
-        }
-        
+        $$->selection.attributes.swap(*$2);
         delete $2;
       }
-      if ($5 != nullptr) {
-        $$->selection.relations.swap(*$5);
-        delete $5;
+      if ($3 != nullptr) {
+        $$->selection.aggregations.swap(*$3);
+        delete $3;
       }
-      $$->selection.relations.push_back($4);
-      std::reverse($$->selection.relations.begin(), $$->selection.relations.end());
-
       if ($6 != nullptr) {
-        $$->selection.conditions.swap(*$6);
+        $$->selection.relations.swap(*$6);
         delete $6;
       }
-      free($4);
+      $$->selection.relations.push_back($5);
+      std::reverse($$->selection.relations.begin(), $$->selection.relations.end());
+
+      if ($7 != nullptr) {
+        $$->selection.conditions.swap(*$7);
+        delete $7;
+      }
+      free($5);
     }
     ;
 calc_stmt:
@@ -530,7 +528,11 @@ expression:
     ;
 
 select_attr:
-    '*' {
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+    | '*' {
       $$ = new std::vector<RelAttrSqlNode>;
       RelAttrSqlNode attr;
       attr.relation_name  = "";
@@ -546,39 +548,44 @@ select_attr:
       $$->emplace_back(*$1);
       delete $1;
     }
-    | aggregation aggregation_list {
-      if ($2 != nullptr) {
+
+select_aggr:
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+  | aggregation aggregation_list {
+    if ($2 != nullptr) {
         $$ = $2;
       } else {
         $$ = new std::vector<AggregationSqlNode>;
       }
       $$->emplace_back(*$1);
       delete $1;
-    }
-    ;
+  }
 
 aggregation: 
     MAX LBRACE rel_attr RBRACE {
         $$ = new AggregationSqlNode;
-        $$->attribute = $3;
+        $$->attribute = *$3;
         $$->aggregation_name = "max";
         free($3);
     } 
     | MIN LBRACE rel_attr RBRACE {
         $$ = new AggregationSqlNode;
-        $$->attribute = $3;
+        $$->attribute = *$3;
         $$->aggregation_name = "min";
         free($3);
     }
     | COUNT LBRACE rel_attr RBRACE {
         $$ = new AggregationSqlNode;
-        $$->attribute = $3;
+        $$->attribute = *$3;
         $$->aggregation_name = "count";
         free($3);
     }
     | AVG LBRACE rel_attr RBRACE {
         $$ = new AggregationSqlNode;
-        $$->attribute = $3;
+        $$->attribute = *$3;
         $$->aggregation_name = "avg";
         free($3);
     }

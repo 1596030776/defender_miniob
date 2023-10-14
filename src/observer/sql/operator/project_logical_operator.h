@@ -30,6 +30,7 @@ class ProjectLogicalOperator : public LogicalOperator
 {
 public:
   ProjectLogicalOperator(const std::vector<Field> &fields);
+  ProjectLogicalOperator(const std::vector<Field> &fields, const std::vector<std::string> aggregation_names);
   virtual ~ProjectLogicalOperator() = default;
 
   LogicalOperatorType type() const override
@@ -49,6 +50,10 @@ public:
   {
     return fields_;
   }
+  const std::vector<std::string> &aggregation_names() const
+  {
+    return aggregation_names_;
+  }
 
 private:
   //! 投影映射的字段名称
@@ -56,4 +61,5 @@ private:
   //! 或者是执行某个函数。所以这里应该是表达式Expression。
   //! 不过现在简单处理，就使用字段来描述
   std::vector<Field> fields_;
+  std::vector<std::string> aggregation_names_;
 };

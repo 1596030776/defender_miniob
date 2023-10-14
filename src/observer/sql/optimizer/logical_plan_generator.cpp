@@ -92,14 +92,27 @@ RC LogicalPlanGenerator::create_plan(
 
   const std::vector<Table *> &tables = select_stmt->tables();
   const std::vector<Field> &all_fields = select_stmt->query_fields();
+  const std::vector<Field> &aggregation_fields = select_stmt->aggregation_fields();
+  const std::vector<std::string> aggregation_names = select_stmt->aggregation_names();
+
   for (Table *table : tables) {
     std::vector<Field> fields;
-    for (const Field &field : all_fields) {
-      if (0 == strcmp(field.table_name(), table->name())) {
-        fields.push_back(field);
+
+    if (aggregation_names.empty())
+    {
+      for (const Field &field : all_fields) {
+        if (0 == strcmp(field.table_name(), table->name())) {
+          fields.push_back(field);
+        }
+      }
+    } else {
+      for (const Field &field : aggregation_fields) {
+        if (0 == strcmp(field.table_name(), table->name())) {
+          fields.push_back(field);
+        }
       }
     }
-
+    
     unique_ptr<LogicalOperator> table_get_oper(new TableGetLogicalOperator(table, fields, true/*readonly*/));
     if (table_oper == nullptr) {
       table_oper = std::move(table_get_oper);
@@ -118,7 +131,14 @@ RC LogicalPlanGenerator::create_plan(
     return rc;
   }
 
-  unique_ptr<LogicalOperator> project_oper(new ProjectLogicalOperator(all_fields));
+  ProjectLogicalOperator *projectLogicalOperator;
+  if (aggregation_names.empty()) {
+    projectLogicalOperator = new ProjectLogicalOperator(all_fields);
+  } else {
+    projectLogicalOperator = new ProjectLogicalOperator(aggregation_fields, aggregation_names);
+  }
+  unique_ptr<LogicalOperator> project_oper(projectLogicalOperator); 
+  
   if (predicate_oper) {
     if (table_oper) {
       predicate_oper->add_child(std::move(table_oper));

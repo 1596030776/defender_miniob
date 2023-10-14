@@ -64,10 +64,66 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
   }
 
   // 聚合函数
-  std::vector<Field> query_fields;
+  std::vector<std::string> aggregation_names;
+  std::vector<Field> aggregation_fields;
   for (int i = static_cast<int>(select_sql.aggregations.size()) - 1; i >= 0; i--) {
     const AggregationSqlNode &aggregation = select_sql.aggregations[i];
-    std::string name = aggregation.aggregation_name;
+    aggregation_names.push_back(aggregation.aggregation_name);
+
+    const RelAttrSqlNode &relation_attr = aggregation.attribute;
+    if (common::is_blank(relation_attr.relation_name.c_str()) &&
+        0 == strcmp(relation_attr.attribute_name.c_str(), "*")) {
+    for (Table *table : tables) {
+      wildcard_fields(table, aggregation_fields);
+    }
+
+    } else if (!common::is_blank(relation_attr.relation_name.c_str())) {
+      const char *table_name = relation_attr.relation_name.c_str();
+      const char *field_name = relation_attr.attribute_name.c_str();
+
+      if (0 == strcmp(table_name, "*")) {
+        if (0 != strcmp(field_name, "*")) {
+          LOG_WARN("invalid field name while table is *. attr=%s", field_name);
+          return RC::SCHEMA_FIELD_MISSING;
+        }
+        for (Table *table : tables) {
+          wildcard_fields(table, aggregation_fields);
+        }
+      } else {
+        auto iter = table_map.find(table_name);
+        if (iter == table_map.end()) {
+          LOG_WARN("no such table in from list: %s", table_name);
+          return RC::SCHEMA_FIELD_MISSING;
+        }
+
+        Table *table = iter->second;
+        if (0 == strcmp(field_name, "*")) {
+          wildcard_fields(table, aggregation_fields);
+        } else {
+          const FieldMeta *field_meta = table->table_meta().field(field_name);
+          if (nullptr == field_meta) {
+            LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), field_name);
+            return RC::SCHEMA_FIELD_MISSING;
+          }
+
+          aggregation_fields.push_back(Field(table, field_meta));
+        }
+      }
+    } else {
+      if (tables.size() != 1) {
+        LOG_WARN("invalid. I do not know the attr's table. attr=%s", relation_attr.attribute_name.c_str());
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+
+      Table *table = tables[0];
+      const FieldMeta *field_meta = table->table_meta().field(relation_attr.attribute_name.c_str());
+      if (nullptr == field_meta) {
+        LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), relation_attr.attribute_name.c_str());
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+
+      aggregation_fields.push_back(Field(table, field_meta));
+    }
   }
 
   // collect query fields in `select` statement
@@ -155,6 +211,8 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
   // TODO add expression copy
   select_stmt->tables_.swap(tables);
   select_stmt->query_fields_.swap(query_fields);
+  select_stmt->aggregation_fields_.swap(aggregation_fields);
+  select_stmt->aggregation_names_ = aggregation_names;
   select_stmt->filter_stmt_ = filter_stmt;
   stmt = select_stmt;
   return RC::SUCCESS;

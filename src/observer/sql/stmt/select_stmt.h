@@ -53,18 +53,23 @@ public:
   {
     return query_fields_;
   }
+  const std::vector<Field> &aggregation_fields() const
+  {
+    return aggregation_fields_;
+  }
   FilterStmt *filter_stmt() const
   {
     return filter_stmt_;
   }
-  std::string *aggregation_name() const
+  std::vector<std::string> aggregation_names() const
   {
-    return aggregation_name_;
+    return aggregation_names_;
   }
 
 private:
   std::vector<Field> query_fields_;
   std::vector<Table *> tables_;
   FilterStmt *filter_stmt_ = nullptr;
-  std::string aggregation_name_ = "";
+  std::vector<Field> aggregation_fields_;
+  std::vector<std::string> aggregation_names_;
 };
