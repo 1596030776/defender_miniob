@@ -63,6 +63,13 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
     table_map.insert(std::pair<std::string, Table *>(table_name, table));
   }
 
+  // 聚合函数
+  std::vector<Field> query_fields;
+  for (int i = static_cast<int>(select_sql.aggregations.size()) - 1; i >= 0; i--) {
+    const AggregationSqlNode &aggregation = select_sql.aggregations[i];
+    std::string name = aggregation.aggregation_name;
+  }
+
   // collect query fields in `select` statement
   std::vector<Field> query_fields;
   for (int i = static_cast<int>(select_sql.attributes.size()) - 1; i >= 0; i--) {

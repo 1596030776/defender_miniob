@@ -31,7 +31,6 @@ See the Mulan PSL v2 for more details. */
 #include "sql/stmt/set_variable_stmt.h"
 #include "sql/stmt/load_data_stmt.h"
 #include "sql/stmt/calc_stmt.h"
-#include "sql/stmt/aggregation_stmt.h"
 
 RC Stmt::create_stmt(Db *db, ParsedSqlNode &sql_node, Stmt *&stmt)
 {
@@ -49,9 +48,6 @@ RC Stmt::create_stmt(Db *db, ParsedSqlNode &sql_node, Stmt *&stmt)
     }
     case SCF_UPDATE: {
       return UpdateStmt::create(db, sql_node.update, stmt);
-    }
-    case SCF_AGGREGATION: {
-      return AggregationStmt::create(db, sql_node.aggregation, stmt);
     }
 
     case SCF_EXPLAIN: {

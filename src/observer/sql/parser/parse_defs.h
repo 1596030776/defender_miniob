@@ -36,19 +36,18 @@ class Expression;
  */
 struct RelAttrSqlNode
 {
-  std::string relation_name;   ///< relation name (may be NULL) 表名
-  std::string attribute_name;  ///< attribute name              属性名
+  std::string relation_name;     ///< relation name (may be NULL) 表名
+  std::string attribute_name;    ///< attribute name              属性名
 };
 
 /**
  * @brief 描述一个聚合函数
  * @ingroup SQLParser
- * @details 聚合函数
  */
 struct AggregationSqlNode
 {
-  RelAttrSqlNode attr;           ///< attr (may be NULL)        属性
-  std::string aggregation_name;  ///< aggregation_name          聚合属性名
+  RelAttrSqlNode attribute;         ///< 属性
+  std::string aggregation_name;    ///< 聚合函数名
 };
 
 /**
@@ -100,9 +99,11 @@ struct ConditionSqlNode
 
 struct SelectSqlNode
 {
+
   std::vector<RelAttrSqlNode>     attributes;    ///< attributes in select clause
   std::vector<std::string>        relations;     ///< 查询的表
   std::vector<ConditionSqlNode>   conditions;    ///< 查询条件，使用AND串联起来多个条件
+  std::vector<AggregationSqlNode> aggregations;    ///< 查询条件，使用AND串联起来多个条件
 };
 
 /**
