@@ -38,7 +38,36 @@ RC ProjectPhysicalOperator::next()
   if (children_.empty()) {
     return RC::RECORD_EOF;
   }
-  return children_[0]->next();
+  RC rc = children_[0]->next();
+  Tuple *tuple = children_[0]->current_tuple();
+
+  if (!aggregation_names_.empty()) 
+  {
+    Value value;
+    count_++;
+    for (Field field : project_fields_)
+    {
+      tuple->find_cell(TupleCellSpec(field.table_name(),field.field_name()), value);
+    
+      if (value.get_string() > max_value_.get_string())
+      {
+        max_value_ = value;
+      }
+      if (value.get_string() < min_value_.get_string())
+      {
+        min_value_ = value;
+      }
+      if (value.attr_type() == 2)
+      {
+        int_sum_ += value.get_int();
+      } 
+      else if (value.attr_type() == 3)
+      {
+        float_sum_ += value.get_float();
+      }
+    }
+  }
+  return rc;
 }
 
 RC ProjectPhysicalOperator::close()
@@ -48,9 +77,40 @@ RC ProjectPhysicalOperator::close()
   }
   return RC::SUCCESS;
 }
+
 Tuple *ProjectPhysicalOperator::current_tuple()
 {
-  tuple_.set_tuple(children_[0]->current_tuple());
+  if (aggregation_names_.empty())
+  {
+    tuple_.set_tuple(children_[0]->current_tuple());
+  }
+  else
+  {
+    ProjectTuple *project_tuple = new ProjectTuple();
+    for (int i = 0; i < aggregation_names_.size(); i++)
+    {
+      std::string aggregation_name = aggregation_names_[i];
+      Field project_field = project_fields_[i];
+      TupleCellSpec *spec;
+      if (aggregation_name == "max") {
+        spec = new TupleCellSpec(project_field.table_name(), project_field.field_name(), max_value_.get_string().c_str());
+      } else if (aggregation_name == "min") {
+        spec = new TupleCellSpec(project_field.table_name(), project_field.field_name(), min_value_.get_string().c_str());
+      } else if (aggregation_name == "count") {
+        spec = new TupleCellSpec(project_field.table_name(), project_field.field_name(), std::to_string(count_).c_str());
+      } else if (aggregation_name == "avg") {
+        if (project_field.attr_type() == 2) {
+          spec = new TupleCellSpec(project_field.table_name(), project_field.field_name(), std::to_string(int_sum_ / count_).c_str());
+        } else {
+          spec = new TupleCellSpec(project_field.table_name(), project_field.field_name(), std::to_string(float_sum_ / count_).c_str());
+        }
+      }
+      project_tuple->add_cell_spec(spec);
+    }
+    
+    tuple_.set_tuple(project_tuple);
+  }
+  
   return &tuple_;
 }
 

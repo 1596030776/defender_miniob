@@ -194,8 +194,9 @@ RC PhysicalPlanGenerator::create_plan(ProjectLogicalOperator &project_oper, uniq
     }
   }
 
-  ProjectPhysicalOperator *project_operator = new ProjectPhysicalOperator;
   const vector<Field> &project_fields = project_oper.fields();
+  const vector<std::string> &aggregation_names = project_oper.aggregation_names();
+  ProjectPhysicalOperator *project_operator = new ProjectPhysicalOperator(project_fields,aggregation_names);
 
   for (const Field &field : project_fields) {
     project_operator->add_projection(field.table(), field.meta());
